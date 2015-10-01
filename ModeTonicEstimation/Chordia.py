@@ -100,7 +100,7 @@ class Chordia:
 			time_track = np.arange(0, (self.frame_rate*len(pitch_track)), self.frame_rate)
 
 			# Current pitch track is sliced into chunks.
-			if self.chunk_size == 0: # no slicing
+			if not self.chunk_size: # no slicing
 				pts = [pitch_track]
 				chunk_data = [pf + '_all']
 			else:
@@ -111,8 +111,7 @@ class Chordia:
 			pts = [mf.hz_to_cent(k, ref_freq=tonic) for k in pts]
 
 			# This is a wrapper function. It iteratively generates the distribution
-			# for each chunk and return it as a list. After this point, we only
-			# need to save it. God bless modular programming!
+			# for each chunk and return it as a list.
 			temp_list = self.train_chunks(pts, chunk_data, tonic, metric)
 
 			# The list is composed of lists of PitchDistributions. So,
@@ -234,8 +233,7 @@ class Chordia:
 			tonic_freq = 440
 
 		if not (est_tonic or est_mode):
-			print "Both tonic and mode are known!"
-			return -1
+			ValueError("Both tonic and mode are known!")
 
 		if(est_tonic and est_mode):
 			neighbors = [ [mode_list, tonic_list] for i in range(len(chunk_data)) ]
@@ -629,12 +627,12 @@ class Chordia:
 		-------------------------------------------------------------------------"""
 		dist_list = []
 		# Iterates over the pitch tracks of a recording
-		for idx in range(len(pts)):
+		for idx, cur_pts in enumerate(pts):
 			# Retrieves the relevant information about the current chunk
 			src = chunk_data[idx][0]
 			interval = (chunk_data[idx][1], chunk_data[idx][2])
 			# PitchDistribution of the current chunk is generated
-			dist = mf.generate_pd(pts[idx], ref_freq=ref_freq, smooth_factor=self.smooth_factor,
+			dist = mf.generate_pd(cur_pts, ref_freq=ref_freq, smooth_factor=self.smooth_factor,
 			                      step_size=self.step_size, source=src, segment=interval, overlap=self.overlap)
 			if(metric=='pcd'):
 				dist = mf.generate_pcd(dist)
@@ -658,7 +656,7 @@ class Chordia:
 		with open(os.path.join(dist_dir, fname)) as f:
 			dist_list = json.load(f)
 
-		# List of dictionaries is is iterated over to initialize a list of
+		# List of dictionaries is iterated over to initialize a list of
 		# PitchDistribution objects.
 		for d in dist_list:
 			obj_list.append(p_d.PitchDistribution(np.array(d['bins']),
