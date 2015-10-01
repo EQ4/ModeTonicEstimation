@@ -199,7 +199,7 @@ class Chordia:
 		# Pitch track is sliced into chunks.
 		time_track = np.arange(0, (self.frame_rate*len(pitch_track)), self.frame_rate)
 
-		if self.chunk_size == 0: # no slicing
+		if not self.chunk_size: # no slicing
 			pts = [pitch_track]
 			chunk_data = ['input_all']
 		else:
@@ -209,20 +209,12 @@ class Chordia:
 
 		# Here's a neat trick. In order to return an estimation about the entire
 		# recording based on our observations on individual chunks, we look at the
-		# nearest neighbors of  union of all chunks. We are returning min_cnt
-		# many number of closest neighbors from each chunk. To make sure that we
-		# capture all of the nearest neighbors, we return a little more than
-		# required and then treat the union of these nearest neighbors as if it's
-		# the distance matrix of the entire recording.Then, we find the nearest
-		# neighbors from the union of these from each chunk. This is quite an
-		# overshoot, we only need min_cnt >= k_param. 
-
-		### TODO: shrink this value as much as possible.
-		min_cnt = len(pts) * k_param
-
-		#Initializations
-		tonic_list = 0
-		mode_list = ''
+		# nearest neighbors of  union of all chunks. We are returning k_param
+		# many number of closest neighbors from each chunk. We treat the union of
+		# these nearest neighbors as if it's the distance matrix of the entire
+		# recording.Then, we find the nearest neighbors from the union of these
+		# from each chunk. Even in the worst case scenario, if all of the nearest
+		# neighbors are from the same chunk, returning k_param neighbors is sufficient
 
 		# parse tonic input
 		if tonic_freq:  # tonic is already known;
@@ -236,22 +228,22 @@ class Chordia:
 			ValueError("Both tonic and mode are known!")
 
 		if(est_tonic and est_mode):
-			neighbors = [ [mode_list, tonic_list] for i in range(len(chunk_data)) ]
+			neighbors = [ ['', 0] for i in range(len(chunk_data)) ]
 		elif(est_tonic):
-			neighbors = [ tonic_list for i in range(len(chunk_data)) ]
+			neighbors = [ 0 for i in range(len(chunk_data)) ]
 		elif(est_mode):
-			neighbors = [ mode_list for i in range(len(chunk_data)) ]
+			neighbors = [ '' for i in range(len(chunk_data)) ]
 
 		# chunk_estimate() generates the distributions of each chunk iteratively,
 		# then compares it with all candidates and returns min_cnt closest neighbors
 		# of each chunk to neighbors list.
-		for p in range(len(pts)):
-			neighbors[p] = self.chunk_estimate(pts[p], mode_names=mode_names,
+		for pt in pts:
+			neighbors[p] = self.chunk_estimate(pt, mode_names=mode_names,
 			                                   mode_name=mode_name, mode_dir=mode_dir,
 				                               est_tonic=est_tonic, est_mode=est_mode,
 				                               distance_method=distance_method,
 				                               metric=metric, ref_freq=tonic_freq,
-				                               min_cnt=min_cnt,
+				                               min_cnt=k_param,
 				                               equalSamplePerMode = equalSamplePerMode)
 		
 		### TODO: Clean up the spaghetti decision making part. The procedures
@@ -603,9 +595,6 @@ class Chordia:
 				# so we can easily find the second nearest neighbor.
 				distance_vector[idx] = (np.amax(distance_vector) + 1) 
 			return [mode_list, min_distance_list.tolist()]
-
-		else:
-			return 0
 
 	def train_chunks(self, pts, chunk_data, ref_freq, metric='pcd'):
 		"""-------------------------------------------------------------------------
