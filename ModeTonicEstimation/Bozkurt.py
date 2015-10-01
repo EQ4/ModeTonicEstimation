@@ -271,7 +271,7 @@ class Bozkurt:
 				if (metric == 'pcd'):
 					tonic_ranked[r] = (mF.cent_to_hz([distrib.bins[peak_idxs[min_row]]],
 					                                 tonic_freq)[0], dist_mat[min_row][min_col])
-				elif (metric == 'pD'):
+				elif (metric == 'pd'):
 					tonic_ranked[r] = (mF.cent_to_hz([shift_idxs[min_row] * self.step_size],
 					                                 tonic_freq)[0], dist_mat[min_row][min_col])
 				# Current mode estimate is recorded.
@@ -341,7 +341,3 @@ class Bozkurt:
 				# so that we won't return the same estimate twice.
 				distance_vector[idx] = (np.amax(distance_vector) + 1)
 			return mode_ranked
-
-		else:
-			# Nothing is expected to be estimated.
-			return 0
