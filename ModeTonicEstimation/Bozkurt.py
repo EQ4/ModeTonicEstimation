@@ -86,14 +86,14 @@ class Bozkurt:
 			if pitch_track.ndim > 1:  # assume the first col is time, the second is pitch and the rest is labels etc
 				pitch_track = pitch_track[:,1]
 
-			if self.chunk_size == 0:  # use the complete pitch track
+			if not self.chunk_size:  # use the complete pitch track
 				mode_track = mF.hz_to_cent(pitch_track, ref_freq=tonic)
-			else:  # slice and used the start of the pitch track
+			else:  # slice and use the start of the pitch track
 				time_track = np.arange(0, self.frame_rate * len(pitch_track), self.frame_rate)
 				pitch_track, segs = mF.slice(time_track, pitch_track, mode_name, self.chunk_size)
 				mode_track = mF.hz_to_cent(pitch_track[0], ref_freq=tonic)
 
-		seglen = 'all' if self.chunk_size == 0 else (segs[0][1], segs[0][2])
+		seglen = 'all' if not self.chunk_size else (segs[0][1], segs[0][2])
 
 		# generate the pitch distribution
 		pitch_distrib = mF.generate_pd(mode_track, smooth_factor=self.smooth_factor,
@@ -195,7 +195,7 @@ class Bozkurt:
 			ValueError("Both tonic and mode are known!")
 
 		# slice the pitch track if specified
-		if self.chunk_size > 0:
+		if self.chunk_size:
 			time_track = np.arange(0, self.frame_rate * len(pitch_track), self.frame_rate)
 			pitch_track, segs = mF.slice(time_track, pitch_track, '', self.chunk_size)
 
@@ -229,7 +229,8 @@ class Bozkurt:
 
 				# Find the peaks of the distribution. These are the tonic candidates.
 				peak_idxs, peak_vals = distrib.detect_peaks()
-			elif metric == 'pD':
+
+			elif metric == 'pd':
 				# Find the peaks of the distribution. These are the tonic candidates
 				peak_idxs, peak_vals = distrib.detect_peaks()
 
@@ -240,7 +241,7 @@ class Bozkurt:
 
 		# Joint Estimation
 		if (est_tonic and est_mode):
-			if (metric == 'pD'):
+			if (metric == 'pd'):
 				# Since PD lengths aren't equal, we zero-pad the distributions for comparison
 				# tonic_estimate() of ModeFunctions just does that. It can handle only
 				# a single column, so the columns of the matrix are iteratively generated
