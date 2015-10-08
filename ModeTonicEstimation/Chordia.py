@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from ModeTonicEstimation import ModeFunctions as mf
-from ModeTonicEstimation import PitchDistribution as p_d
+from ModeTonicEstimation import PitchDistribution as pD
 import json
 import os
 import random
@@ -546,7 +546,7 @@ class Chordia:
 		# List of dictionaries is iterated over to initialize a list of
 		# PitchDistribution objects.
 		for d in dist_list:
-			obj_list.append(p_d.PitchDistribution(np.array(d['bins']),
+			obj_list.append(pD.PitchDistribution(np.array(d['bins']),
 				            np.array(d['vals']), kernel_width=d['kernel_width'],
 				            source=d['source'], ref_freq=d['ref_freq'],
 				            segment=d['segmentation'], overlap=d['overlap']))
