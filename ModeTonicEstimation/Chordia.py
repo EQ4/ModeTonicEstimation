@@ -237,8 +237,8 @@ class Chordia:
 		# chunk_estimate() generates the distributions of each chunk iteratively,
 		# then compares it with all candidates and returns min_cnt closest neighbors
 		# of each chunk to neighbors list.
-		for pt in pts:
-			neighbors[p] = self.chunk_estimate(pt, mode_names=mode_names,
+		for idx, pt in enumerate(pts):
+			neighbors[idx] = self.chunk_estimate(pt, mode_names=mode_names,
 			                                   mode_name=mode_name, mode_dir=mode_dir,
 				                               est_tonic=est_tonic, est_mode=est_mode,
 				                               distance_method=distance_method,
@@ -247,8 +247,8 @@ class Chordia:
 				                               equalSamplePerMode = equalSamplePerMode)
 		
 		### TODO: Clean up the spaghetti decision making part. The procedures
-		### are quite repetitive. Wrap them up with a separate function.
-
+		### are quite repetitive. Wrap them up
+.
 		# Temporary variables used during the desicion making part.
 		candidate_distances, candidate_ests, candidate_sources, kn_distances, kn_ests, \
 		kn_sources, idx_counts, elem_counts, res_distances, res_sources = ([] for i in range(10))
