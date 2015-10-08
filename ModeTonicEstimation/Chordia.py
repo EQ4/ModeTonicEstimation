@@ -140,7 +140,7 @@ class Chordia:
 		return pitch_distrib_list
 
 	def estimate(self, pitch_file, mode_names=[], mode_name='', mode_dir='./', est_mode=True,
-		         distance_method="euclidean", metric='pcd', tonic_freq=None,
+		         distance_method="bhat", metric='pcd', tonic_freq=None,
 		         k_param=1, equalSamplePerMode = False):
 		"""-------------------------------------------------------------------------
 		In the estimation phase, the input pitch track is sliced into chunk and each
@@ -259,9 +259,7 @@ class Chordia:
 		# Joint estimation decision making. 
 		if(est_mode and est_tonic):
 			# Flattens the returned candidates and related data about them and
-			# stores them into candidate_* variables. candidate_distances stores
-			# the distance values, candidate_ests stores the mode/tonic pairs
-			# candidate_sources stores the sources of the nearest neighbors.
+			# stores them into candidate_*
 			for i in xrange(len(pts)):
 				for j in neighbors[i][1]:
 					candidate_distances.append(j)
@@ -269,123 +267,46 @@ class Chordia:
 					candidate_ests.append((neighbors[i][0][1][l], neighbors[i][0][0][l][0]))
 					candidate_sources.append(neighbors[i][0][0][l][1])
 
-			# Finds the nearest neighbors and fills all related data about
-			# them to kn_* variables. Each of these variables have length k.
-			# kn_distances stores the distance values, kn_ests stores
-			# mode/tonic pairs, kn_sources store the name/id of the distribution
-			# that gave rise to the corresponding distances.
-			for k in xrange(k_param):
-				idx = np.argmin(candidate_distances)
-				kn_distances.append(candidate_distances[idx])
-				kn_ests.append(candidate_ests[idx])
-				kn_sources.append(candidate_sources[idx])
-				candidate_distances[idx] = (np.amax(candidate_distances) + 1)
+		# Mode or Tonic estimation decision making
+		else:
+			# See the joint version of this loop for further explanation
+			for i in xrange(len(pts)):
+				for j in neighbors[i][1]:
+					candidate_distances.append(j)
+				for l in xrange(len(neighbors[i][0])):
+					candidate_ests.append(neighbors[i][0][l][0])
+					candidate_sources.append(neighbors[i][0][l][1])
+	
+		# Finds the nearest neighbors and fills all related data about
+		# them to kn_*. Each of these variables have length k. kn_distances
+		# stores the distance values, kn_ests stores mode/tonic pairs,
+		# kn_sources store the name/id of the distribution that gave rise
+		# to the corresponding distances.
+		for k in xrange(k_param):
+			idx = np.argmin(candidate_distances)
+			kn_distances.append(candidate_distances[idx])
+			kn_ests.append(candidate_ests[idx])
+			kn_sources.append(candidate_sources[idx])
+			candidate_distances[idx] = (np.amax(candidate_distances) + 1)
 			
-			# Counts the occurences of each candidate mode/tonic pair in
-			# the K nearest neighbors. The result is our estimation. 
-			for c in set(kn_ests):
-				idx_counts.append(kn_ests.count(c))
-				elem_counts.append(c)
-			joint_estimation = elem_counts[np.argmax(idx_counts)]
+		# Counts the occurences of each candidate mode/tonic pair in
+		# the K nearest neighbors. The result is our estimation.
+		elem_counts = [c for c in set(kn_ests)]
+		idx_counts = [kn_ests.count(c) for c in set(kn_ests)]
+		res_estimation = elem_counts[np.argmax(idx_counts)]
 
-			# We have concluded our estimation. Here, we retrieve the 
-			# relevant data to this estimation; the sources and coresponding
-			# distances.
-			for m in xrange(len(kn_ests)):
-				if (kn_ests[m] == joint_estimation):
-					res_sources.append(kn_sources[m])
-					res_distances.append(kn_distances[m])
-			result = [joint_estimation, res_sources, res_distances]
-
-		# Mode estimation decision making
-		elif(est_mode):
-			# Flattens the returned candidates and related data about them and
-			# stores them into candidate_* variables. candidate_distances stores
-			# the distance values, candidate_ests stores the candidate modes
-			# candidate_sources stores the sources of the nearest neighbors.
-			for i in xrange(len(pts)):
-				for j in neighbors[i][1]:
-					candidate_distances.append(j)
-				for l in xrange(len(neighbors[i][0])):
-					candidate_ests.append(neighbors[i][0][l][0])
-					candidate_sources.append(neighbors[i][0][l][1])
-
-			# Finds the nearest neighbors and fills all related data about
-			# them to kn_* variables. Each of these variables have length k.
-			# kn_distances stores the distance values, kn_ests stores
-			# mode names, kn_sources store the name/id of the distributions
-			# that gave rise to the corresponding distances.
-			for k in xrange(k_param):
-				idx = np.argmin(candidate_distances)
-				kn_distances.append(candidate_distances[idx])
-				kn_ests.append(candidate_ests[idx])
-				kn_sources.append(candidate_sources[idx])
-				candidate_distances[idx] = (np.amax(candidate_distances) + 1)
-
-			# Counts the occurences of each candidate mode name in
-			# the K nearest neighbors. The result is our estimation. 
-			for c in set(kn_ests):
-				idx_counts.append(kn_ests.count(c))
-				elem_counts.append(c)
-			mode_estimation = elem_counts[np.argmax(idx_counts)]
-
-			# We have concluded our estimation. Here, we retrieve the 
-			# relevant data to this estimation; the sources and coresponding
-			# distances.
-			for m in xrange(len(kn_ests)):
-				if (kn_ests[m] == mode_estimation):
-					res_sources.append(kn_sources[m])
-					res_distances.append(kn_distances[m])
-			result = [mode_estimation, res_sources, res_distances]
-
-
-		# Tonic estimation decision making
-		elif(est_tonic):
-			# Flattens the returned candidates and related data about them and
-			# stores them into candidate_* variables. candidate_distances stores
-			# the distance values, candidate_ests stores the candidate peak 
-			# frequencies, candidate_sources stores the sources of the nearest
-			# neighbors.
-			for i in xrange(len(pts)):
-				for j in neighbors[i][1]:
-					candidate_distances.append(j)
-				for l in xrange(len(neighbors[i][0])):
-					candidate_ests.append(neighbors[i][0][l][0])
-					candidate_sources.append(neighbors[i][0][l][1])
-
-			# Finds the nearest neighbors and fills all related data about
-			# them to kn_* variables. Each of these variables have length k.
-			# kn_distances stores the distance values, kn_ests stores
-			# peak frequencies, kn_sources store the name/id of the
-			# distributions that gave rise to the corresponding distances.
-			for k in xrange(k_param):
-				idx = np.argmin(candidate_distances)
-				kn_distances.append(candidate_distances[idx])
-				kn_ests.append(candidate_ests[idx])
-				kn_sources.append(candidate_sources[idx])
-				candidate_distances[idx] = (np.amax(candidate_distances) + 1)
-
-			# Counts the occurences of each candidate tonic frequency in
-			# the K nearest neighbors. The result is our estimation. 
-			for c in set(kn_ests):
-				idx_counts.append(kn_ests.count(c))
-				elem_counts.append(c)
-			tonic_estimation = elem_counts[np.argmax(idx_counts)]
-
-			# We have concluded our estimation. Here, we retrieve the 
-			# relevant data to this estimation; the sources and coresponding
-			# distances.
-			for m in xrange(len(kn_ests)):
-				if (kn_ests[m] == tonic_estimation):
-					res_sources.append(kn_sources[m])
-					res_distances.append(kn_distances[m])
-			result = [tonic_estimation, res_sources, res_distances]
-
-		return result
+		# We have concluded our estimation. Here, we retrieve the 
+		# relevant data to this estimation; the sources and coresponding
+		# distances.
+		for m, cur_est in enumerate(kn_ests):
+			if (cur_est == res_estimation):
+				res_sources.append(kn_sources[m])
+				res_distances.append(kn_distances[m])
+		return [res_estimation, res_sources, res_distances]
 
 	def chunk_estimate(self, pitch_track, mode_names=[], mode_name='', mode_dir='./',
-		                 est_tonic=True, est_mode=True, distance_method="euclidean",
-		                 metric='pcd', ref_freq=440, min_cnt=3, equalSamplePerMode = False):
+		               est_tonic=True, est_mode=True, distance_method='bhat',
+		               metric='pcd', ref_freq=440, min_cnt=3, equalSamplePerMode = False):
 		"""-------------------------------------------------------------------------
 		This function is called by the wrapper estimate() function only. It gets a 
 		pitch track chunk, generates its pitch distribution and compares it with the
